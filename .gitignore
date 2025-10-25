@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual envs
+env/
+venv/
+.venv/
+backend/.venv/
+backend/venv/
+
+# Packages and build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# VSCode / IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs, coverage, test cache
+*.log
+logs/
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Node / frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store/
+.next/
+out/
+public/build/
+dist/
+
+# Env / secrets
+.env
+.env.*.local
+secrets/
+*.secret
+
+# Local app storage / generated data
+backend/app/storage/
+backend/storage/
+**/store.json
+
+# Other artifacts
+*.sqlite3
+*.db
+*.pid
+*.swp
+*.lock
+.vagrant/
+.terraform/
