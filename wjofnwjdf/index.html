@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universe Welcome</title>
+    <style>
+        /* --- Configuración General --- */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+
+        /* --- Contenedor Principal del Universo --- */
+        .universe-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            /* Color de fondo oscuro del espacio */
+            background-color: #0d1b3f;
+            color: white;
+            padding: 40px;
+        }
+
+        /* --- Título Superior Izquierdo --- */
+        .title {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            color: #fdd835; /* Color amarillo del título */
+            font-size: 2.5rem;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        /* --- Objeto Espacial (Base para planetas y personaje) --- */
+        .space-object {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        /* --- Estilo para la imagen del personaje --- */
+        .character-image {
+            width: 180px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* --- Estilo para las imágenes de los planetas --- */
+        .planet-image {
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            
+            /* Estilos de marcador de posición (reemplazar con <img>) */
+            background-color: #555;
+            border: 2px dashed #888;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #ccc;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .space-object:hover .planet-image {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px 5px rgba(255, 255, 255, 0.2);
+        }
+
+        /* --- Estilo para las etiquetas de texto --- */
+        .label {
+            margin-top: 15px;
+            padding: 8px 30px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-align: center;
+            color: white;
+        }
+
+        /* --- Posicionamiento y Estilos Específicos --- */
+
+        /* Personaje (Capibara) */
+        #character {
+            top: 10%;
+            left: 65%;
+            z-index: 5;
+        }
+
+        /* Planeta Savings */
+        #savings {
+            top: 55%;
+            left: 10%;
+        }
+        #savings .planet-image {
+            width: 170px;
+            height: 170px;
+        }
+        #savings .label {
+            background-color: #fdd835; /* Amarillo */
+            color: #333; /* Texto oscuro para contraste */
+        }
+
+        /* Planeta Habitos */
+        #habitos {
+            top: 35%;
+            left: 38%;
+        }
+        #habitos .planet-image {
+            width: 210px; /* Planeta central, más grande */
+            height: 210px;
+        }
+        #habitos .label {
+            background-color: #26a69a; /* Verde */
+        }
+
+        /* Planeta Investment */
+        #investment {
+            top: 60%;
+            left: 78%;
+        }
+        #investment .planet-image {
+            width: 160px;
+            height: 160px;
+        }
+        #investment .label {
+            background-color: #e91e63; /* Rosa/Rojo */
+        }
+
+        /* Item Bloqueado (Solutions) */
+        #solutions {
+            top: 62%;
+            left: 58%;
+            opacity: 0.6; /* Apariencia deshabilitada */
+            cursor: not-allowed;
+        }
+        #solutions .planet-image {
+            width: 90px;
+            height: 90px;
+        }
+        #solutions:hover .planet-image {
+            transform: none; /* Sin efecto hover */
+            box-shadow: none;
+        }
+        #solutions .label {
+            background-color: #37474f; /* Gris oscuro */
+            color: #90a4ae;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="universe-container">
+       <canvas id="starsCanvas" aria-hidden="true"></canvas>
+        
+        <h1 class="title">WELCOME TO<br>THE UNIVERSE</h1>
+        
+        
+
+        <div class="space-object" id="character">
+            <div class="character-image">
+                <img width="150%" src="imagenes-planetas/capibara.png" alt="">
+            </div>
+        </div>
+        
+        <a href="#" class="space-object" id="savings">
+            <div class="planet-image">
+                <img width="800%" src="imagenes-planetas/savings.png" alt="">
+            </div>
+            <span class="label">Savings</span>
+        </a>
+
+        <a href="#" class="space-object" id="habitos">
+            <div class="planet-image">
+                <img width="425%" src="imagenes-planetas/habits.png" alt="">
+            </div>
+            <span class="label">Habits</span>
+        </a>
+
+        <a href="#" class="space-object" id="investment">
+            <div class="planet-image">
+                <img width="630%" src="imagenes-planetas/investments.png" alt="">
+            </div>
+            <span class="label">Investment</span>
+        </a>
+        
+        <div class="space-object" id="solutions">
+            <div class="planet-image">
+                <img width="930%" src="imagenes-planetas/lock.png" alt="">
+            </div>
+            <span class="label">Solutions</span>
+        </div>
+
+    </div>
+
+    <script>
+(function(){
+  const canvas = document.getElementById('starsCanvas');
+  const container = document.querySelector('.universe-container');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  const STAR_COUNT = 140; // ajustar cantidad
+
+  function resize(){
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    initStars();
+  }
+
+  function rand(min, max){ return Math.random()*(max-min)+min; }
+
+  function initStars(){
+    stars = [];
+    for(let i=0;i<STAR_COUNT;i++){
+      stars.push({
+        x: rand(0, canvas.width),
+        y: rand(0, canvas.height),
+        r: rand(0.3, 1.6),
+        base: rand(0.2, 0.9),
+        speed: rand(0.002, 0.015),
+        phase: rand(0, Math.PI*2)
+      });
+    }
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(const s of stars){
+      const a = s.base + 0.5 * Math.sin(s.phase + performance.now()*s.speed);
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(255,255,255,${Math.max(0, Math.min(1,a))})`;
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  // inicializar
+  resize();
+  draw();
+})();
+</script>
+
+</body>
+</html>
