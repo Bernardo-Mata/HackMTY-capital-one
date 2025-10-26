@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { authService } from '../components/AuthService' // ← AGREGAR ESTA LÍNEA
 import capibara from '../assets/imagenes-planetas/capibara.png'
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, onSwitchToRegister }) { // ← AGREGAR onSwitchToRegister
   const [userId, setUserId] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -217,7 +217,7 @@ export default function Login({ onLogin }) {
             </div>
             <div className="auth-hint">
               Don't have an account?
-              <a href="#" aria-label="Sign up">Sign up here</a>
+              <a onClick={onSwitchToRegister} aria-label="Sign up"> Sign up here</a>
             </div>
           </div>
         </header>

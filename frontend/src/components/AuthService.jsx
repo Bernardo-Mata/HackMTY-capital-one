@@ -1,11 +1,49 @@
 /**
  * Servicio de autenticación
- * Maneja login, logout y gestión de tokens
+ * Maneja login, logout, registro y gestión de tokens
  */
 
 const API_URL = 'http://localhost:8000/api'
 
 export const authService = {
+  /**
+   * Registro de nuevo usuario
+   */
+  async register(userId, password = '', email = '', fullName = '') {
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          user_id: userId, 
+          password,
+          email: email || null,
+          full_name: fullName || null
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || 'Registration failed')
+      }
+
+      const data = await response.json()
+      
+      // Guardar token en localStorage
+      if (data.access_token) {
+        localStorage.setItem('token', data.access_token)
+        localStorage.setItem('user_id', userId)
+      }
+
+      return data
+    } catch (error) {
+      console.error('Registration error:', error)
+      throw error
+    }
+  },
+
   /**
    * Login de usuario
    */
@@ -76,6 +114,36 @@ export const authService = {
       localStorage.removeItem('token')
       localStorage.removeItem('user_id')
       return { success: true }
+    }
+  },
+
+  /**
+   * Obtener información del usuario actual
+   */
+  async getCurrentUser() {
+    const token = localStorage.getItem('token')
+    
+    if (!token) {
+      throw new Error('No token found')
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/auth/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to get user info')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Get current user error:', error)
+      throw error
     }
   },
 

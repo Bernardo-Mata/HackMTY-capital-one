@@ -1,75 +1,135 @@
 import { useState, useEffect } from 'react'
 import { authService } from './components/AuthService'
 import Login from './components/Login'
+import Register from './components/Register'
 import StartJourney from './components/startjourney'
 import Lessons from './components/lessons'
-import Trivia from './components/trivia/Trivia'
+import Trivia from './components/trivia/trivia'
 import Results from './components/trivia/ResultsTrivia'
 
 function App() {
   const [token, setToken] = useState(() => authService.getToken())
+  const [showRegister, setShowRegister] = useState(false)
   
-  const [showJourney, setShowJourney] = useState(true)
-  const [showTrivia, setShowTrivia] = useState(false)
-  const [showResults, setShowResults] = useState(false)
+  // Estados del flujo de navegación
+  const [currentView, setCurrentView] = useState('journey') // 'journey' | 'diagnostic' | 'results' | 'lessons'
   const [triviaResults, setTriviaResults] = useState(null)
 
   useEffect(() => {
-    // El token ya se maneja en authService, no hace falta guardar aquí
+    // Al hacer login/register, siempre empezar en journey
+    if (token) {
+      setCurrentView('journey')
+    }
   }, [token])
 
   const handleLogout = async () => {
     try {
-      // Llamar al endpoint de logout
       await authService.logout()
-      
-      // Resetear todos los estados
       setToken(null)
-      setShowJourney(true)
-      setShowTrivia(false)
-      setShowResults(false)
+      setShowRegister(false)
+      setCurrentView('journey')
       setTriviaResults(null)
-      
       console.log('Logout successful')
     } catch (error) {
       console.error('Logout error:', error)
-      // Igual limpiamos el estado local aunque falle
       setToken(null)
-      setShowJourney(true)
-      setShowTrivia(false)
-      setShowResults(false)
+      setShowRegister(false)
+      setCurrentView('journey')
       setTriviaResults(null)
     }
   }
 
-  const handleTriviaComplete = (results) => {
-    console.log('Trivia completada:', results)
+  // Callback cuando se completa StartJourney
+  const handleStartJourney = () => {
+    console.log('Starting diagnostic trivia...')
+    setCurrentView('diagnostic')
+  }
+
+  // Callback cuando se completa la trivia diagnóstica
+  const handleDiagnosticComplete = (results) => {
+    console.log('Diagnostic trivia completed:', results)
     setTriviaResults(results)
-    setShowTrivia(false)
-    setShowResults(true)
+    setCurrentView('results')
   }
 
-  const handleContinueFromResults = () => {
-    setShowResults(false)
+  // Callback cuando se completan los resultados
+  const handleContinueToLessons = () => {
+    console.log('Continuing to lessons...')
+    setCurrentView('lessons')
   }
 
+  // Callback cuando se inicia una trivia desde Lessons
+  const handleStartModuleTrivia = () => {
+    console.log('Starting module trivia...')
+    // Aquí puedes implementar trivias de módulos específicos
+    setCurrentView('diagnostic') // Por ahora usa la misma trivia
+  }
+
+  const handleSwitchToRegister = () => {
+    setShowRegister(true)
+  }
+
+  const handleSwitchToLogin = () => {
+    setShowRegister(false)
+  }
+
+  const handleLoginSuccess = (newToken) => {
+    setToken(newToken)
+    setCurrentView('journey') // Empezar en journey
+  }
+
+  const handleRegisterSuccess = (newToken) => {
+    setToken(newToken)
+    setCurrentView('journey') // Empezar en journey
+  }
+
+  // ==================== RENDERIZADO CONDICIONAL ====================
+
+  // Si no hay token, mostrar Login o Register
   if (!token) {
-    return <Login onLogin={setToken} />
+    if (showRegister) {
+      return (
+        <Register 
+          onRegister={handleRegisterSuccess} 
+          onSwitchToLogin={handleSwitchToLogin} 
+        />
+      )
+    }
+    return (
+      <Login 
+        onLogin={handleLoginSuccess} 
+        onSwitchToRegister={handleSwitchToRegister} 
+      />
+    )
   }
 
-  if (showJourney) {
-    return <StartJourney onStart={() => setShowJourney(false)} />
-  }
+  // Si hay token, mostrar la vista correspondiente
+  switch (currentView) {
+    case 'journey':
+      return <StartJourney onStart={handleStartJourney} />
 
-  if (showTrivia) {
-    return <Trivia onComplete={handleTriviaComplete} />
-  }
+    case 'diagnostic':
+      return <Trivia onComplete={handleDiagnosticComplete} />
 
-  if (showResults && triviaResults) {
-    return <Results results={triviaResults} onTryRealLife={handleContinueFromResults} />
-  }
+    case 'results':
+      return (
+        <Results 
+          results={triviaResults} 
+          onTryRealLife={handleContinueToLessons} 
+        />
+      )
 
-  return <Lessons onLogout={handleLogout} onStartTrivia={() => setShowTrivia(true)} />
+    case 'lessons':
+      return (
+        <Lessons 
+          onLogout={handleLogout} 
+          onStartTrivia={handleStartModuleTrivia} 
+        />
+      )
+
+    default:
+      return <StartJourney onStart={handleStartJourney} />
+  }
 }
 
 export default App

@@ -1,101 +1,216 @@
-from fastapi import APIRouter, Header, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, Header
+from typing import Optional
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
 import secrets
-
-from app.core import read_store, write_store
+import json
+import os
+from pathlib import Path
 
 router = APIRouter()
 
+# Ruta al archivo de almacenamiento
+STORAGE_PATH = Path(__file__).parent.parent.parent / "storage" / "store.json"
 
-class LoginIn(BaseModel):
+class LoginRequest(BaseModel):
     user_id: str
-    password: Optional[str] = None  # opcional
+    password: Optional[str] = ""
 
+class RegisterRequest(BaseModel):
+    user_id: str
+    password: Optional[str] = ""
+    email: Optional[str] = None
+    full_name: Optional[str] = None
 
-class TokenOut(BaseModel):
+class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    user_id: str
+    message: str
 
+class RegisterResponse(BaseModel):
+    user_id: str
+    access_token: str
+    token_type: str = "bearer"
+    message: str
 
-class LogoutIn(BaseModel):
-    token: Optional[str] = None
-    user_id: Optional[str] = None
+def load_storage():
+    """Cargar datos del archivo JSON"""
+    try:
+        if STORAGE_PATH.exists():
+            with open(STORAGE_PATH, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return {"users": {}, "sessions": {}}
+    except Exception as e:
+        print(f"Error loading storage: {e}")
+        return {"users": {}, "sessions": {}}
 
+def save_storage(data):
+    """Guardar datos en el archivo JSON"""
+    try:
+        STORAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(STORAGE_PATH, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error saving storage: {e}")
+        raise HTTPException(status_code=500, detail="Error saving data")
 
-def validate_bearer(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
+def generate_token():
+    """Generar token único"""
+    return secrets.token_urlsafe(32)
+
+@router.post("/register", response_model=RegisterResponse)
+async def register(request: RegisterRequest):
     """
-    Valida header Authorization: Bearer <token> contra store.json.
-    Lanza 401 si falta o es inválido.
+    Endpoint de registro de nuevos usuarios
+    
+    - **user_id**: Identificador único del usuario (requerido)
+    - **password**: Contraseña (opcional)
+    - **email**: Correo electrónico (opcional)
+    - **full_name**: Nombre completo (opcional)
+    
+    Retorna un token de acceso para el usuario registrado
     """
-    if not authorization:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authorization header missing")
-    parts = authorization.split()
-    if len(parts) != 2 or parts[0].lower() != "bearer":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authorization header format")
-    token = parts[1]
-    store = read_store()
-    user_id = store.get("tokens", {}).get(token)
-    if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
-    profile = store.get("profiles", {}).get(user_id, {"user_id": user_id})
-    return {"user_id": user_id, "profile": profile, "token": token}
+    storage = load_storage()
+    
+    # Validar que el user_id no esté vacío
+    if not request.user_id or not request.user_id.strip():
+        raise HTTPException(status_code=400, detail="User ID cannot be empty")
+    
+    # Verificar si el usuario ya existe
+    if request.user_id in storage.get("users", {}):
+        raise HTTPException(status_code=409, detail="User ID already exists")
+    
+    # Crear nuevo usuario
+    new_user = {
+        "user_id": request.user_id,
+        "password": request.password or "",  # En producción, hashear la contraseña
+        "email": request.email,
+        "full_name": request.full_name,
+        "created_at": None,  # Puedes agregar datetime.now().isoformat() si importas datetime
+        "diagnostic_completed": False,
+        "progress": {
+            "current_module": None,
+            "completed_modules": [],
+            "total_score": 0
+        }
+    }
+    
+    # Guardar usuario
+    if "users" not in storage:
+        storage["users"] = {}
+    storage["users"][request.user_id] = new_user
+    
+    # Generar token de sesión
+    token = generate_token()
+    
+    # Guardar sesión
+    if "sessions" not in storage:
+        storage["sessions"] = {}
+    storage["sessions"][token] = {
+        "user_id": request.user_id,
+        "created_at": None  # datetime.now().isoformat()
+    }
+    
+    # Guardar en archivo
+    save_storage(storage)
+    
+    return RegisterResponse(
+        user_id=request.user_id,
+        access_token=token,
+        token_type="bearer",
+        message="User registered successfully"
+    )
 
-
-@router.post("/login", response_model=TokenOut)
-def login(payload: LoginIn):
+@router.post("/login", response_model=LoginResponse)
+async def login(request: LoginRequest):
     """
-    Genera token simple y lo guarda en store.json (token -> user_id).
+    Endpoint de login
+    
+    - **user_id**: Identificador del usuario
+    - **password**: Contraseña (opcional por ahora)
+    
+    Retorna un token de acceso
     """
-    token = secrets.token_urlsafe(32)
-    store = read_store()
-    store.setdefault("tokens", {})[token] = payload.user_id
-    store.setdefault("profiles", {}).setdefault(payload.user_id, {"user_id": payload.user_id})
-    write_store(store)
-    return {"access_token": token, "token_type": "bearer"}
-
-
-@router.get("/session")
-def session(current: Dict = Depends(validate_bearer)):
-    """
-    Devuelve info del usuario autenticado según el token del header.
-    """
-    return {"authenticated": True, "user": current["profile"], "user_id": current["user_id"]}
-
+    storage = load_storage()
+    
+    # Verificar si el usuario existe
+    users = storage.get("users", {})
+    if request.user_id not in users:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user = users[request.user_id]
+    
+    # Validar contraseña (si existe)
+    if user.get("password") and user["password"] != request.password:
+        raise HTTPException(status_code=401, detail="Invalid password")
+    
+    # Generar token
+    token = generate_token()
+    
+    # Guardar sesión
+    if "sessions" not in storage:
+        storage["sessions"] = {}
+    storage["sessions"][token] = {
+        "user_id": request.user_id,
+        "created_at": None
+    }
+    
+    save_storage(storage)
+    
+    return LoginResponse(
+        access_token=token,
+        token_type="bearer",
+        user_id=request.user_id,
+        message="Login successful"
+    )
 
 @router.post("/logout")
-def logout(payload: Optional[LogoutIn] = None, authorization: Optional[str] = Header(None)):
+async def logout(authorization: Optional[str] = Header(None)):
     """
-    Logout simple:
-     - Si hay Authorization header elimina ese token.
-     - Si se envía body { token } elimina ese token.
-     - Si se envía body { user_id } elimina todos los tokens de ese usuario.
+    Endpoint de logout
+    Invalida el token actual del usuario
     """
-    store = read_store()
-    tokens = store.get("tokens", {}) or {}
-    removed = 0
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="No token provided")
+    
+    token = authorization.split(" ")[1]
+    
+    storage = load_storage()
+    
+    # Eliminar sesión
+    if "sessions" in storage and token in storage["sessions"]:
+        del storage["sessions"][token]
+        save_storage(storage)
+        return {"message": "Logout successful", "status": "ok"}
+    
+    return {"message": "Token not found, but considered logged out", "status": "ok"}
 
-    # eliminar token desde header si viene
-    if authorization:
-        parts = authorization.split()
-        if len(parts) == 2 and parts[0].lower() == "bearer":
-            t = parts[1]
-            if t in tokens:
-                del tokens[t]
-                removed = 1
-
-    # si se pasó payload en body, procesarlo (anula header behavior si aplica)
-    if payload:
-        if payload.token:
-            if payload.token in tokens:
-                del tokens[payload.token]
-                removed = max(removed, 1)
-        elif payload.user_id:
-            keys_to_remove = [t for t, u in tokens.items() if u == payload.user_id]
-            for k in keys_to_remove:
-                del tokens[k]
-            removed = max(removed, len(keys_to_remove))
-
-    store["tokens"] = tokens
-    write_store(store)
-    return {"message": "logged out", "removed_tokens": removed}
+@router.get("/me")
+async def get_current_user(authorization: Optional[str] = Header(None)):
+    """
+    Obtener información del usuario actual
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="No token provided")
+    
+    token = authorization.split(" ")[1]
+    storage = load_storage()
+    
+    # Verificar sesión
+    sessions = storage.get("sessions", {})
+    if token not in sessions:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
+    user_id = sessions[token]["user_id"]
+    
+    # Obtener usuario
+    users = storage.get("users", {})
+    if user_id not in users:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user = users[user_id]
+    
+    # No retornar la contraseña
+    user_data = {k: v for k, v in user.items() if k != "password"}
+    
+    return user_data
