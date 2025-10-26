@@ -128,7 +128,10 @@ export const authService = {
     }
 
     try {
-      const response = await fetch(`${API_URL}/auth/me`, {
+      const url = `${API_URL}/auth/me`
+      console.log('🔵 Calling /me endpoint:', url)
+      
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -136,13 +139,19 @@ export const authService = {
         }
       })
 
+      console.log('📡 /me response status:', response.status)
+
       if (!response.ok) {
-        throw new Error('Failed to get user info')
+        // Token inválido
+        throw new Error('Invalid token')
       }
 
-      return await response.json()
+      const data = await response.json()
+      console.log('✅ User info:', data)
+      
+      return data
     } catch (error) {
-      console.error('Get current user error:', error)
+      console.error('💥 Get current user error:', error)
       throw error
     }
   },

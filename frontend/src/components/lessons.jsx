@@ -5,7 +5,7 @@ import habits from '../assets/imagenes-planetas/habits.png'
 import investments from '../assets/imagenes-planetas/investments.png'
 import lockImg from '../assets/imagenes-planetas/lock.png'
 
-export default function Lessons({ onLogout }) {
+export default function Lessons({ onLogout, onSelectModule }) {
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
 
@@ -61,6 +61,12 @@ export default function Lessons({ onLogout }) {
       if (rafId) cancelAnimationFrame(rafId)
     }
   }, [])
+
+  // ==================== HANDLERS ====================
+  const handleModuleClick = (category) => {
+    console.log(`📚 Selected module: ${category}`)
+    onSelectModule && onSelectModule(category)
+  }
 
   return (
     <div ref={containerRef} className="universe-container" style={{
@@ -130,6 +136,7 @@ export default function Lessons({ onLogout }) {
           flex-direction: column;
           align-items: center;
           text-decoration: none;
+          cursor: pointer;
         }
         .character-image {
           width: 180px;
@@ -169,6 +176,7 @@ export default function Lessons({ onLogout }) {
           top: 10%;
           left: 65%;
           z-index: 5;
+          pointer-events: none;
         }
         #savings {
           top: 55%;
@@ -209,6 +217,7 @@ export default function Lessons({ onLogout }) {
           left: 58%;
           opacity: 0.6;
           cursor: not-allowed;
+          pointer-events: none;
         }
         #solutions .planet-image {
           width: 90px;
@@ -234,27 +243,52 @@ export default function Lessons({ onLogout }) {
         </div>
       </div>
 
-      <a href="#" className="space-object" id="savings">
+      {/* SAVINGS - Cambiar de <a> a <div> con onClick */}
+      <div 
+        className="space-object" 
+        id="savings"
+        onClick={() => handleModuleClick('savings')}
+        role="button"
+        tabIndex={0}
+        onKeyPress={(e) => e.key === 'Enter' && handleModuleClick('savings')}
+      >
         <div className="planet-image">
           <img style={{ width: '800%' }} src={savings} alt="savings" />
         </div>
         <span className="label">Savings</span>
-      </a>
+      </div>
 
-      <a href="#" className="space-object" id="habitos">
+      {/* HABITS - Cambiar de <a> a <div> con onClick */}
+      <div 
+        className="space-object" 
+        id="habitos"
+        onClick={() => handleModuleClick('habits')}
+        role="button"
+        tabIndex={0}
+        onKeyPress={(e) => e.key === 'Enter' && handleModuleClick('habits')}
+      >
         <div className="planet-image">
           <img style={{ width: '425%' }} src={habits} alt="habits" />
         </div>
         <span className="label">Habits</span>
-      </a>
+      </div>
 
-      <a href="#" className="space-object" id="investment">
+      {/* INVESTMENTS - Cambiar de <a> a <div> con onClick */}
+      <div 
+        className="space-object" 
+        id="investment"
+        onClick={() => handleModuleClick('investments')}
+        role="button"
+        tabIndex={0}
+        onKeyPress={(e) => e.key === 'Enter' && handleModuleClick('investments')}
+      >
         <div className="planet-image">
           <img style={{ width: '630%' }} src={investments} alt="investments" />
         </div>
         <span className="label">Investment</span>
-      </a>
+      </div>
 
+      {/* SOLUTIONS - Bloqueado (sin cambios) */}
       <div className="space-object" id="solutions">
         <div className="planet-image">
           <img style={{ width: '930%' }} src={lockImg} alt="lock" />

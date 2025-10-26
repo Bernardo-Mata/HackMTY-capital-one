@@ -1,20 +1,20 @@
 import React, { useState } from 'react'
 import Question from './Question'
-import { triviaQuestions } from './questions'
+import { getQuestionsByCategory } from './questions'
 import capyThink from '../../assets/imagenes-planetas/capibara.png'
 
 /**
  * Componente CEREBRO - Controla toda la lógica de la trivia
  * 
- * Responsabilidades:
- * - Mantener el estado (pregunta actual, respuestas, puntaje)
- * - Decidir qué pregunta mostrar
- * - Calcular el progreso
- * - Validar respuestas
- * - Navegar entre preguntas
+ * Props:
+ * - category: 'diagnostic' | 'savings' | 'habits' | 'investments'
+ * - onComplete: callback cuando termina la trivia
  */
 
-export default function Trivia({ onComplete }) {
+export default function Trivia({ category = 'diagnostic', onComplete }) {
+  // ==================== OBTENER PREGUNTAS POR CATEGORÍA ====================
+  const triviaQuestions = getQuestionsByCategory(category)
+
   // ==================== ESTADO ====================
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [selectedOption, setSelectedOption] = useState(null)
@@ -26,21 +26,20 @@ export default function Trivia({ onComplete }) {
   const progress = ((currentQuestionIndex + 1) / triviaQuestions.length) * 100
   const isLastQuestion = currentQuestionIndex === triviaQuestions.length - 1
 
+  // Títulos por categoría
+  const categoryTitles = {
+    diagnostic: 'Diagnostic Trivia',
+    savings: 'Savings Module',
+    habits: 'Financial Habits Module',
+    investments: 'Investments Module'
+  }
+
   // ==================== HANDLERS ====================
   
-  /**
-   * Maneja la selección de una opción
-   */
   const handleSelectOption = (optionIndex) => {
     setSelectedOption(optionIndex)
   }
 
-  /**
-   * Maneja el botón "Continue"
-   * - Valida la respuesta
-   * - Actualiza el puntaje
-   * - Avanza a la siguiente pregunta o termina
-   */
   const handleContinue = () => {
     if (selectedOption === null) return
 
@@ -62,11 +61,11 @@ export default function Trivia({ onComplete }) {
     }
 
     if (isLastQuestion) {
-      // Pasar resultados completos con score, total y answers
       onComplete && onComplete({
         score: isCorrect ? score + 1 : score,
         total: triviaQuestions.length,
-        answers: newAnswers
+        answers: newAnswers,
+        category // ← Incluir categoría en resultados
       })
     } else {
       setCurrentQuestionIndex(currentQuestionIndex + 1)
@@ -77,7 +76,7 @@ export default function Trivia({ onComplete }) {
   // ==================== RENDER ====================
   return (
     <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden' }}>
-      {/* ========== ESTILOS CSS ========== */}
+      {/* ...existing styles... */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&display=swap');
         
@@ -343,11 +342,9 @@ export default function Trivia({ onComplete }) {
         }
       `}</style>
 
-      {/* ========== CONTENIDO ========== */}
       <div className="trivia-wrapper">
         <div className="stars-bg" aria-hidden="true"></div>
 
-        {/* Barra superior con progreso */}
         <header className="top" role="banner">
           <div className="brand">
             <span className="logo" aria-hidden="true"></span>
@@ -367,12 +364,10 @@ export default function Trivia({ onComplete }) {
           </div>
         </header>
 
-        {/* Contenido principal */}
         <main className="wrap" role="main">
           <section>
-            <h1 className="title">Answer the diagnostic trivia</h1>
+            <h1 className="title">{categoryTitles[category]}</h1>
 
-            {/* Componente MOLDE - Recibe datos y callbacks */}
             <Question
               questionData={currentQuestion}
               selectedOption={selectedOption}
@@ -383,7 +378,6 @@ export default function Trivia({ onComplete }) {
             />
           </section>
 
-          {/* Mascota */}
           <aside className="mascot" aria-hidden="true">
             <img src={capyThink} alt="Capybara astronaut thinking" />
           </aside>

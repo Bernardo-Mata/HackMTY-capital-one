@@ -8,19 +8,40 @@ import Trivia from './components/trivia/trivia'
 import Results from './components/trivia/ResultsTrivia'
 
 function App() {
-  const [token, setToken] = useState(() => authService.getToken())
+  const [token, setToken] = useState(null) // ← CAMBIAR: inicializar en null
   const [showRegister, setShowRegister] = useState(false)
+  const [isLoading, setIsLoading] = useState(true) // ← AGREGAR: estado de carga
   
   // Estados del flujo de navegación
-  const [currentView, setCurrentView] = useState('journey') // 'journey' | 'diagnostic' | 'results' | 'lessons'
+  const [currentView, setCurrentView] = useState('journey')
+  const [currentCategory, setCurrentCategory] = useState('diagnostic')
   const [triviaResults, setTriviaResults] = useState(null)
 
+  // ==================== VERIFICAR TOKEN AL MONTAR ====================
   useEffect(() => {
-    // Al hacer login/register, siempre empezar en journey
-    if (token) {
-      setCurrentView('journey')
+    const checkAuth = async () => {
+      const storedToken = authService.getToken()
+      
+      if (storedToken) {
+        try {
+          // Verificar si el token es válido
+          await authService.getCurrentUser()
+          console.log('✅ Token válido, usuario autenticado')
+          setToken(storedToken)
+          setCurrentView('journey')
+        } catch (error) {
+          console.warn('⚠️ Token inválido, limpiando sesión')
+          // Token inválido, limpiar
+          authService.logout()
+          setToken(null)
+        }
+      }
+      
+      setIsLoading(false)
     }
-  }, [token])
+
+    checkAuth()
+  }, [])
 
   const handleLogout = async () => {
     try {
@@ -28,41 +49,52 @@ function App() {
       setToken(null)
       setShowRegister(false)
       setCurrentView('journey')
+      setCurrentCategory('diagnostic')
       setTriviaResults(null)
-      console.log('Logout successful')
+      console.log('✅ Logout successful')
     } catch (error) {
-      console.error('Logout error:', error)
+      console.error('❌ Logout error:', error)
       setToken(null)
       setShowRegister(false)
       setCurrentView('journey')
+      setCurrentCategory('diagnostic')
       setTriviaResults(null)
     }
   }
 
-  // Callback cuando se completa StartJourney
   const handleStartJourney = () => {
-    console.log('Starting diagnostic trivia...')
+    console.log('🚀 Starting diagnostic trivia...')
+    setCurrentCategory('diagnostic')
     setCurrentView('diagnostic')
   }
 
-  // Callback cuando se completa la trivia diagnóstica
   const handleDiagnosticComplete = (results) => {
-    console.log('Diagnostic trivia completed:', results)
+    console.log('✅ Diagnostic trivia completed:', results)
     setTriviaResults(results)
     setCurrentView('results')
   }
 
-  // Callback cuando se completan los resultados
   const handleContinueToLessons = () => {
-    console.log('Continuing to lessons...')
+    console.log('📚 Continuing to lessons...')
     setCurrentView('lessons')
   }
 
-  // Callback cuando se inicia una trivia desde Lessons
-  const handleStartModuleTrivia = () => {
-    console.log('Starting module trivia...')
-    // Aquí puedes implementar trivias de módulos específicos
-    setCurrentView('diagnostic') // Por ahora usa la misma trivia
+  const handleSelectModule = (category) => {
+    console.log(`📖 Starting ${category} module trivia...`)
+    setCurrentCategory(category)
+    setCurrentView('module-trivia')
+  }
+
+  const handleModuleTriviaComplete = (results) => {
+    console.log('✅ Module trivia completed:', results)
+    setTriviaResults(results)
+    setCurrentView('module-results')
+  }
+
+  const handleBackToLessons = () => {
+    console.log('🔙 Returning to lessons...')
+    setCurrentView('lessons')
+    setTriviaResults(null)
   }
 
   const handleSwitchToRegister = () => {
@@ -74,13 +106,33 @@ function App() {
   }
 
   const handleLoginSuccess = (newToken) => {
+    console.log('✅ Login successful, starting journey')
     setToken(newToken)
-    setCurrentView('journey') // Empezar en journey
+    setCurrentView('journey')
   }
 
   const handleRegisterSuccess = (newToken) => {
+    console.log('✅ Registration successful, starting journey')
     setToken(newToken)
-    setCurrentView('journey') // Empezar en journey
+    setCurrentView('journey')
+  }
+
+  // ==================== LOADING STATE ====================
+  if (isLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        background: '#0B1220',
+        color: '#eaf1ff',
+        fontFamily: 'Montserrat, sans-serif',
+        fontSize: '18px'
+      }}>
+        Loading...
+      </div>
+    )
   }
 
   // ==================== RENDERIZADO CONDICIONAL ====================
@@ -109,7 +161,12 @@ function App() {
       return <StartJourney onStart={handleStartJourney} />
 
     case 'diagnostic':
-      return <Trivia onComplete={handleDiagnosticComplete} />
+      return (
+        <Trivia 
+          category="diagnostic" 
+          onComplete={handleDiagnosticComplete} 
+        />
+      )
 
     case 'results':
       return (
@@ -123,7 +180,23 @@ function App() {
       return (
         <Lessons 
           onLogout={handleLogout} 
-          onStartTrivia={handleStartModuleTrivia} 
+          onSelectModule={handleSelectModule} 
+        />
+      )
+
+    case 'module-trivia':
+      return (
+        <Trivia 
+          category={currentCategory} 
+          onComplete={handleModuleTriviaComplete} 
+        />
+      )
+
+    case 'module-results':
+      return (
+        <Results 
+          results={triviaResults} 
+          onTryRealLife={handleBackToLessons} 
         />
       )
 
