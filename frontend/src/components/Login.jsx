@@ -1,32 +1,31 @@
 import { useState } from 'react'
+import { authService } from '../components/AuthService' // ← AGREGAR ESTA LÍNEA
 import capibara from '../assets/imagenes-planetas/capibara.png'
-
-const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
 export default function Login({ onLogin }) {
   const [userId, setUserId] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState('')
 
-  async function submit(e) {
+  // CAMBIAR TODA ESTA FUNCIÓN
+  const submit = async (e) => {
     e.preventDefault()
+    setError('')
+
+    if (!userId.trim()) {
+      setError('Please enter your user ID')
+      return
+    }
+
     setLoading(true)
-    setError(null)
+
     try {
-      const res = await fetch(`${API}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, password: password || undefined })
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }))
-        throw new Error(err.detail || 'Login failed')
-      }
-      const data = await res.json()
+      const data = await authService.login(userId, password)
+      console.log('Login successful:', data)
       onLogin(data.access_token)
     } catch (err) {
-      setError(err.message)
+      setError(err.message || 'Login failed. Please try again.')
     } finally {
       setLoading(false)
     }
