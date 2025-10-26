@@ -4,8 +4,9 @@ import savings from '../assets/imagenes-planetas/savings.png'
 import habits from '../assets/imagenes-planetas/habits.png'
 import investments from '../assets/imagenes-planetas/investments.png'
 import lockImg from '../assets/imagenes-planetas/lock.png'
+import logo from '../assets/imagenes-planetas/logo.png'
 
-export default function Lessons({ onLogout, onSelectModule }) {
+export default function Lessons({ onLogout, onSelectModule, userName }) {
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
 
@@ -102,33 +103,79 @@ export default function Lessons({ onLogout, onSelectModule }) {
         *, *:before, *:after {
           box-sizing: inherit;
         }
-        .title {
+        .navbar {
           position: absolute;
-          top: 40px;
-          left: 40px;
-          color: #fdd835;
-          font-size: 2.5rem;
-          font-weight: bold;
-          z-index: 10;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 70px;
+          background-color: rgba(13, 27, 63, 0.9);
+          backdrop-filter: blur(10px);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 30px;
+          z-index: 20;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .navbar-left {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          height: 100%;
+        }
+        .logo {
+          height: 150px;
+          width: auto;
+          margin-top: 20px;
+        }
+        .navbar-right {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+        }
+        .user-avatar {
+          width: 35px;
+          height: 35px;
+          border-radius: 50%;
+          background-color: #90a4ae;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.9rem;
+          color: white;
+        }
+        .user-name {
+          color: white;
+          font-size: 0.95rem;
         }
         .logout-btn {
-          position: absolute;
-          top: 40px;
-          right: 40px;
-          padding: 12px 24px;
+          padding: 10px 20px;
           background-color: #e91e63;
           color: white;
           border: none;
           border-radius: 25px;
           font-weight: bold;
-          font-size: 1rem;
+          font-size: 0.9rem;
           cursor: pointer;
-          z-index: 10;
           transition: background-color 0.3s ease, transform 0.2s ease;
         }
         .logout-btn:hover {
           background-color: #c2185b;
           transform: scale(1.05);
+        }
+        .title {
+          position: absolute;
+          top: 120px;
+          left: 30px;
+          color: #fdd835;
+          font-size: 2rem;
+          font-weight: bold;
+          z-index: 10;
+          line-height: 1.2;
+        }
+        .user-info {
+          display: none;
         }
         .space-object {
           position: absolute;
@@ -149,15 +196,13 @@ export default function Lessons({ onLogout, onSelectModule }) {
           border-radius: 50%;
           cursor: pointer;
           transition: transform 0.3s ease, box-shadow 0.3s ease;
-          background-color: #555;
-          border: 2px dashed #888;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 14px;
-          color: #ccc;
-          text-align: center;
-          padding: 10px;
+          overflow: hidden;
+        }
+        .planet-image img {
+          pointer-events: none;
         }
         .space-object:hover .planet-image {
           transform: scale(1.05);
@@ -166,76 +211,79 @@ export default function Lessons({ onLogout, onSelectModule }) {
         .label {
           margin-top: 15px;
           padding: 8px 30px;
-          border-radius: 25px;
           font-weight: bold;
           font-size: 1.1rem;
           text-align: center;
           color: white;
         }
         #character {
-          top: 10%;
-          left: 65%;
+          top: 15%;
+          right: 15%;
+          left: auto;
           z-index: 5;
           pointer-events: none;
         }
         #savings {
           top: 55%;
-          left: 10%;
+          left: 15%;
         }
         #savings .planet-image {
-          width: 170px;
-          height: 170px;
-        }
-        #savings .label {
-          background-color: #fdd835;
-          color: #333;
+          width: 200px;
+          height: 200px;
         }
         #habitos {
           top: 35%;
           left: 38%;
         }
         #habitos .planet-image {
-          width: 210px;
-          height: 210px;
-        }
-        #habitos .label {
-          background-color: #26a69a;
+          width: 220px;
+          height: 220px;
         }
         #investment {
-          top: 60%;
-          left: 78%;
+          top: 58%;
+          right: 18%;
+          left: auto;
         }
         #investment .planet-image {
-          width: 160px;
-          height: 160px;
-        }
-        #investment .label {
-          background-color: #e91e63;
+          width: 170px;
+          height: 170px;
         }
         #solutions {
-          top: 62%;
-          left: 58%;
+          top: 75%;
+          left: 50%;
+          transform: translateX(-50%);
           opacity: 0.6;
           cursor: not-allowed;
           pointer-events: none;
         }
         #solutions .planet-image {
-          width: 90px;
-          height: 90px;
+          width: 110px;
+          height: 110px;
         }
         #solutions:hover .planet-image {
           transform: none;
           box-shadow: none;
         }
-        #solutions .label {
-          background-color: #37474f;
-          color: #90a4ae;
-        }
       `}</style>
 
-      <h1 className="title">WELCOME TO<br />THE UNIVERSE</h1>
+      <nav className="navbar">
+        <div className="navbar-left">
+          <img src={logo} alt="FinancIA Logo" className="logo" />
+        </div>
+        <div className="navbar-right">
+          <div className="user-avatar">👤</div>
+          <span className="user-name">{userName || 'User'}</span>
+          <button className="logout-btn" onClick={onLogout}>Logout</button>
+        </div>
+      </nav>
+
+      <h1 className="title">Welcome to the<br />finances universe!</h1>
       
-      <button className="logout-btn" onClick={onLogout}>Logout</button>
+      <div className="user-info">
+        <div className="user-avatar">👤</div>
+        <span className="user-name">{userName || 'User'}</span>
+        <button className="logout-btn" onClick={onLogout}>Logout</button>
+      </div>
 
       <div className="space-object" id="character">
         <div className="character-image">
@@ -253,7 +301,7 @@ export default function Lessons({ onLogout, onSelectModule }) {
         onKeyPress={(e) => e.key === 'Enter' && handleModuleClick('savings')}
       >
         <div className="planet-image">
-          <img style={{ width: '800%' }} src={savings} alt="savings" />
+          <img style={{ width: '900%', height: '900%', objectFit: 'contain' }} src={savings} alt="savings" />
         </div>
         <span className="label">Savings</span>
       </div>
@@ -268,7 +316,7 @@ export default function Lessons({ onLogout, onSelectModule }) {
         onKeyPress={(e) => e.key === 'Enter' && handleModuleClick('habits')}
       >
         <div className="planet-image">
-          <img style={{ width: '425%' }} src={habits} alt="habits" />
+          <img style={{ width: '500%', height: '500%', objectFit: 'contain' }} src={habits} alt="habits" />
         </div>
         <span className="label">Habits</span>
       </div>
@@ -283,7 +331,7 @@ export default function Lessons({ onLogout, onSelectModule }) {
         onKeyPress={(e) => e.key === 'Enter' && handleModuleClick('investments')}
       >
         <div className="planet-image">
-          <img style={{ width: '630%' }} src={investments} alt="investments" />
+          <img style={{ width: '500%', height: '500%', objectFit: 'contain' }} src={investments} alt="investments" />
         </div>
         <span className="label">Investment</span>
       </div>
@@ -291,7 +339,7 @@ export default function Lessons({ onLogout, onSelectModule }) {
       {/* SOLUTIONS - Bloqueado (sin cambios) */}
       <div className="space-object" id="solutions">
         <div className="planet-image">
-          <img style={{ width: '930%' }} src={lockImg} alt="lock" />
+          <img style={{ width: '480%', height: '480%', objectFit: 'contain' }} src={lockImg} alt="lock" />
         </div>
         <span className="label">Solutions</span>
       </div>

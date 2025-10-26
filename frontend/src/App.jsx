@@ -9,6 +9,7 @@ import Results from './components/trivia/ResultsTrivia'
 
 function App() {
   const [token, setToken] = useState(null) // ← CAMBIAR: inicializar en null
+  const [userName, setUserName] = useState('') // ← AGREGAR: nombre de usuario
   const [showRegister, setShowRegister] = useState(false)
   const [isLoading, setIsLoading] = useState(true) // ← AGREGAR: estado de carga
   
@@ -25,15 +26,17 @@ function App() {
       if (storedToken) {
         try {
           // Verificar si el token es válido
-          await authService.getCurrentUser()
+          const user = await authService.getCurrentUser()
           console.log('✅ Token válido, usuario autenticado')
           setToken(storedToken)
+          setUserName(user.username || user.user_id || 'User')
           setCurrentView('journey')
         } catch (error) {
           console.warn('⚠️ Token inválido, limpiando sesión')
           // Token inválido, limpiar
           authService.logout()
           setToken(null)
+          setUserName('')
         }
       }
       
@@ -47,6 +50,7 @@ function App() {
     try {
       await authService.logout()
       setToken(null)
+      setUserName('')
       setShowRegister(false)
       setCurrentView('journey')
       setCurrentCategory('diagnostic')
@@ -55,6 +59,7 @@ function App() {
     } catch (error) {
       console.error('❌ Logout error:', error)
       setToken(null)
+      setUserName('')
       setShowRegister(false)
       setCurrentView('journey')
       setCurrentCategory('diagnostic')
@@ -108,12 +113,26 @@ function App() {
   const handleLoginSuccess = (newToken) => {
     console.log('✅ Login successful, starting journey')
     setToken(newToken)
+    // Obtener información del usuario
+    authService.getCurrentUser().then(user => {
+      setUserName(user.username || user.user_id || 'User')
+    }).catch(err => {
+      console.error('Error getting user info:', err)
+      setUserName('User')
+    })
     setCurrentView('journey')
   }
 
   const handleRegisterSuccess = (newToken) => {
     console.log('✅ Registration successful, starting journey')
     setToken(newToken)
+    // Obtener información del usuario
+    authService.getCurrentUser().then(user => {
+      setUserName(user.username || user.user_id || 'User')
+    }).catch(err => {
+      console.error('Error getting user info:', err)
+      setUserName('User')
+    })
     setCurrentView('journey')
   }
 
@@ -180,7 +199,8 @@ function App() {
       return (
         <Lessons 
           onLogout={handleLogout} 
-          onSelectModule={handleSelectModule} 
+          onSelectModule={handleSelectModule}
+          userName={userName}
         />
       )
 
